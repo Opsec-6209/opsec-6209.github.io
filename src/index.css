@@ -28,8 +28,8 @@ body {
   overflow-x: hidden;
 }
 
-html {
-  scroll-behavior: smooth;
+html, body {
+  height: auto;
 }
 
 #root {

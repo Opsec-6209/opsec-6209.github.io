@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Lenis from "lenis";
 import { MusicPlayer } from "./components/MusicPlayer";
 import { Hero } from "./components/Hero";
 import { SocialLinks } from "./components/SocialLinks";
@@ -8,13 +9,11 @@ import { CryptoAddresses } from "./components/CryptoAddresses";
 import { PayPalCard } from "./components/PayPalCard";
 import { ProjectsShowcase } from "./components/ProjectsShowcase";
 import { GitHubStats } from "./components/GitHubStats";
-import { ContactForm } from "./components/ContactForm";
 import { Footer } from "./components/Footer";
 import { EntryCurtain } from "./components/EntryCurtain";
 import { ScrollProgress } from "./components/ScrollProgress";
 import { useAudioPlayer } from "./hooks/useAudioPlayer";
 import { useSakuraCanvas } from "./hooks/useSakuraCanvas";
-import { useRef } from "react";
 
 function KonamiRain() {
   const [active, setActive] = useState(false);
@@ -149,6 +148,30 @@ export default function App() {
     }
   });
 
+  // Lenis smooth scroll with momentum
+  useEffect(() => {
+    const lenis = new Lenis({
+      lerp: 0.085,
+      duration: 1.4,
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 1.6,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    });
+
+    let rafId = 0;
+    function raf(time: number) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, []);
+
   const handleEnter = useCallback(() => {
     setCurtainVisible(false);
     player.play();
@@ -198,12 +221,6 @@ export default function App() {
 
         <RevealSection from="left">
           <PayPalCard />
-        </RevealSection>
-
-        <FloatingDivider />
-
-        <RevealSection from="right">
-          <ContactForm />
         </RevealSection>
 
         <Footer />
