@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lenis from "lenis";
 import { MusicPlayer } from "./components/MusicPlayer";
@@ -10,7 +10,6 @@ import { PayPalCard } from "./components/PayPalCard";
 import { ProjectsShowcase } from "./components/ProjectsShowcase";
 import { GitHubStats } from "./components/GitHubStats";
 import { Footer } from "./components/Footer";
-import { EntryCurtain } from "./components/EntryCurtain";
 import { ScrollProgress } from "./components/ScrollProgress";
 import { useAudioPlayer } from "./hooks/useAudioPlayer";
 import { useSakuraCanvas } from "./hooks/useSakuraCanvas";
@@ -138,21 +137,57 @@ function SakuraBackgroundReactive() {
   return <canvas ref={ref} className="canvas-bg" />;
 }
 
+function AutoPlayMusic({ play }: { play: () => void }) {
+  useEffect(() => {
+    let cleaned = false;
+
+    // Try autoplay immediately (will be blocked by most browsers)
+    const tryPlay = () => {
+      if (cleaned) return;
+      play();
+    };
+    tryPlay();
+
+    // Fallback: start music on first user interaction
+    const events: (keyof WindowEventMap)[] = [
+      "click", "keydown", "scroll", "touchstart", "pointerdown", "wheel", "mousemove",
+    ];
+
+    const handler = () => {
+      if (cleaned) return;
+      cleaned = true;
+      play();
+      events.forEach((e) => window.removeEventListener(e, handler));
+    };
+
+    // Wait a bit before adding listeners (in case autoplay succeeded)
+    const timeout = setTimeout(() => {
+      if (!cleaned) {
+        events.forEach((e) =>
+          window.addEventListener(e, handler, { once: true, passive: true })
+        );
+      }
+    }, 300);
+
+    return () => {
+      cleaned = true;
+      clearTimeout(timeout);
+      events.forEach((e) => window.removeEventListener(e, handler));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
+}
+
 export default function App() {
   const player = useAudioPlayer();
-  const [curtainVisible, setCurtainVisible] = useState(() => {
-    try {
-      return !localStorage.getItem("sakura-entered");
-    } catch {
-      return true;
-    }
-  });
 
-  // Lenis smooth scroll with momentum
+  // Lenis smooth scroll — snappier but still smooth with momentum
   useEffect(() => {
     const lenis = new Lenis({
-      lerp: 0.085,
-      duration: 1.4,
+      lerp: 0.13,
+      duration: 0.9,
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 1.6,
@@ -172,59 +207,51 @@ export default function App() {
     };
   }, []);
 
-  const handleEnter = useCallback(() => {
-    setCurtainVisible(false);
-    player.play();
-  }, [player]);
-
   return (
     <div className="relative">
       <SakuraBackgroundReactive />
       <ScrollProgress />
       <MusicPlayer player={player} />
       <KonamiRain />
+      <AutoPlayMusic play={player.play} />
 
-      {curtainVisible && <EntryCurtain onEnter={handleEnter} />}
+      <Hero />
 
-      <div className={curtainVisible ? "pointer-events-none" : ""}>
-        <Hero />
+      <RevealSection from="bottom">
+        <SocialLinks />
+      </RevealSection>
 
-        <RevealSection from="bottom">
-          <SocialLinks />
-        </RevealSection>
+      <FloatingDivider />
 
-        <FloatingDivider />
+      <RevealSection from="left">
+        <SkillsGrid />
+      </RevealSection>
 
-        <RevealSection from="left">
-          <SkillsGrid />
-        </RevealSection>
+      <FloatingDivider />
 
-        <FloatingDivider />
+      <RevealSection from="right">
+        <ProjectsShowcase />
+      </RevealSection>
 
-        <RevealSection from="right">
-          <ProjectsShowcase />
-        </RevealSection>
+      <FloatingDivider />
 
-        <FloatingDivider />
+      <RevealSection from="left">
+        <GitHubStats />
+      </RevealSection>
 
-        <RevealSection from="left">
-          <GitHubStats />
-        </RevealSection>
+      <FloatingDivider />
 
-        <FloatingDivider />
+      <RevealSection from="right">
+        <CryptoAddresses />
+      </RevealSection>
 
-        <RevealSection from="right">
-          <CryptoAddresses />
-        </RevealSection>
+      <FloatingDivider />
 
-        <FloatingDivider />
+      <RevealSection from="left">
+        <PayPalCard />
+      </RevealSection>
 
-        <RevealSection from="left">
-          <PayPalCard />
-        </RevealSection>
-
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 }
