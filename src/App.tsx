@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SakuraBackground } from "./components/SakuraBackground";
 import { MusicPlayer } from "./components/MusicPlayer";
 import { Hero } from "./components/Hero";
 import { SocialLinks } from "./components/SocialLinks";
@@ -11,166 +10,204 @@ import { ProjectsShowcase } from "./components/ProjectsShowcase";
 import { GitHubStats } from "./components/GitHubStats";
 import { ContactForm } from "./components/ContactForm";
 import { Footer } from "./components/Footer";
+import { EntryCurtain } from "./components/EntryCurtain";
+import { ScrollProgress } from "./components/ScrollProgress";
+import { useAudioPlayer } from "./hooks/useAudioPlayer";
+import { useSakuraCanvas } from "./hooks/useSakuraCanvas";
+import { useRef } from "react";
 
-function KonamiEasterEgg() {
-  const [konami, setKonami] = useState(false);
+function KonamiRain() {
+  const [active, setActive] = useState(false);
+  const [petals, setPetals] = useState<{ id: number; x: number; delay: number }[]>([]);
 
   useEffect(() => {
-    const sequence = [
+    const seq = [
       "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown",
-      "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight",
-      "b", "a",
+      "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a",
     ];
-    let index = 0;
-
+    let i = 0;
     const handler = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === sequence[index]) {
-        index++;
-        if (index === sequence.length) {
-          setKonami(true);
-          index = 0;
-          setTimeout(() => setKonami(false), 4000);
+      if (e.key === seq[i] || e.key.toLowerCase() === seq[i]) {
+        i++;
+        if (i === seq.length) {
+          i = 0;
+          const newPetals = Array.from({ length: 100 }, (_, idx) => ({
+            id: Date.now() + idx,
+            x: Math.random() * 100,
+            delay: Math.random() * 0.8,
+          }));
+          setPetals(newPetals);
+          setActive(true);
+          setTimeout(() => setActive(false), 5500);
         }
       } else {
-        index = 0;
+        i = 0;
       }
     };
-
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
   return (
     <AnimatePresence>
-      {konami && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.5 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
-        >
+      {active && (
+        <>
           <motion.div
-            initial={{ y: -30 }}
-            animate={{ y: [0, -15, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-x-0 top-20 z-[80] text-center pointer-events-none"
           >
-            <p className="text-8xl">🌸</p>
-            <p className="text-sakura-600 text-2xl font-bold font-[var(--font-serif)] mt-4 drop-shadow-lg">
-              Konami Code Activated!
+            <p className="inline-block bg-white/90 backdrop-blur px-6 py-2 rounded-full border border-sakura-300 text-sakura-700 font-semibold text-sm shadow-lg">
+              🌸 Konami Code Unlocked 🌸
             </p>
-            <p className="text-ink-muted text-sm mt-2">You found a secret 🌸</p>
           </motion.div>
-        </motion.div>
+          <div className="fixed inset-0 z-[75] pointer-events-none overflow-hidden">
+            {petals.map((p) => (
+              <motion.span
+                key={p.id}
+                className="absolute text-3xl"
+                style={{ left: `${p.x}%`, top: 0 }}
+                initial={{ y: -50, rotate: 0, opacity: 1 }}
+                animate={{ y: "110vh", rotate: 720, opacity: 0 }}
+                transition={{ duration: 4, delay: p.delay, ease: "easeIn" }}
+              >
+                🌸
+              </motion.span>
+            ))}
+          </div>
+        </>
       )}
     </AnimatePresence>
   );
 }
 
-const sectionVariants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.7, ease: "easeOut" as const },
-  },
-};
-
-function SectionDivider() {
+function FloatingDivider() {
   return (
-    <div className="flex items-center justify-center py-2">
-      <div className="h-px w-24 bg-gradient-to-r from-transparent via-sakura-200 to-transparent" />
-      <span className="mx-3 text-sakura-300 text-sm">✦</span>
-      <div className="h-px w-24 bg-gradient-to-r from-transparent via-sakura-200 to-transparent" />
-    </div>
+    <motion.div
+      className="flex items-center justify-center py-2"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.6 }}
+    >
+      <motion.span
+        animate={{ y: [0, -6, 0], rotate: [0, 8, -8, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        className="text-2xl"
+      >
+        🌸
+      </motion.span>
+    </motion.div>
   );
 }
 
+interface RevealSectionProps {
+  children: React.ReactNode;
+  from?: "left" | "right" | "bottom";
+  className?: string;
+}
+
+function RevealSection({ children, from = "bottom", className = "" }: RevealSectionProps) {
+  const variants = {
+    hidden: {
+      opacity: 0,
+      x: from === "left" ? -50 : from === "right" ? 50 : 0,
+      y: from === "bottom" ? 40 : 0,
+    },
+    visible: { opacity: 1, x: 0, y: 0 },
+  };
+
+  return (
+    <motion.div
+      variants={variants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function SakuraBackgroundReactive() {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useSakuraCanvas(ref);
+  return <canvas ref={ref} className="canvas-bg" />;
+}
+
 export default function App() {
+  const player = useAudioPlayer();
+  const [curtainVisible, setCurtainVisible] = useState(() => {
+    try {
+      return !localStorage.getItem("sakura-entered");
+    } catch {
+      return true;
+    }
+  });
+
+  const handleEnter = useCallback(() => {
+    setCurtainVisible(false);
+    player.play();
+  }, [player]);
+
   return (
     <div className="relative">
-      <SakuraBackground />
-      <MusicPlayer />
-      <KonamiEasterEgg />
+      <SakuraBackgroundReactive />
+      <ScrollProgress />
+      <MusicPlayer player={player} />
+      <KonamiRain />
 
-      <Hero />
+      {curtainVisible && <EntryCurtain onEnter={handleEnter} />}
 
-      <motion.div
-        variants={sectionVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-80px" }}
-      >
-        <SocialLinks />
-      </motion.div>
+      <div className={curtainVisible ? "pointer-events-none" : ""}>
+        <Hero />
 
-      <SectionDivider />
+        <RevealSection from="bottom">
+          <SocialLinks />
+        </RevealSection>
 
-      <motion.div
-        variants={sectionVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
-      >
-        <SkillsGrid />
-      </motion.div>
+        <FloatingDivider />
 
-      <SectionDivider />
+        <RevealSection from="left">
+          <SkillsGrid />
+        </RevealSection>
 
-      <motion.div
-        variants={sectionVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
-      >
-        <ProjectsShowcase />
-      </motion.div>
+        <FloatingDivider />
 
-      <SectionDivider />
+        <RevealSection from="right">
+          <ProjectsShowcase />
+        </RevealSection>
 
-      <motion.div
-        variants={sectionVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
-      >
-        <GitHubStats />
-      </motion.div>
+        <FloatingDivider />
 
-      <SectionDivider />
+        <RevealSection from="left">
+          <GitHubStats />
+        </RevealSection>
 
-      <motion.div
-        variants={sectionVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
-      >
-        <CryptoAddresses />
-      </motion.div>
+        <FloatingDivider />
 
-      <SectionDivider />
+        <RevealSection from="right">
+          <CryptoAddresses />
+        </RevealSection>
 
-      <motion.div
-        variants={sectionVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
-      >
-        <PayPalCard />
-      </motion.div>
+        <FloatingDivider />
 
-      <SectionDivider />
+        <RevealSection from="left">
+          <PayPalCard />
+        </RevealSection>
 
-      <motion.div
-        variants={sectionVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
-      >
-        <ContactForm />
-      </motion.div>
+        <FloatingDivider />
 
-      <Footer />
+        <RevealSection from="right">
+          <ContactForm />
+        </RevealSection>
+
+        <Footer />
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Copy, Check, Bitcoin } from "lucide-react";
 import { useState } from "react";
+import { TiltCard } from "./TiltCard";
 
 const coins = [
   {
@@ -42,39 +43,48 @@ function CoinCard({ coin }: { coin: (typeof coins)[0] }) {
       : coin.address;
 
   return (
-    <motion.button
-      onClick={handleCopy}
-      initial={{ opacity: 0, y: 25 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.5 }}
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.97 }}
-      className="w-full bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-sakura-200 shadow-[0_4px_24px_rgba(255,77,141,0.06)] hover:shadow-[0_8px_30px_rgba(255,77,141,0.12)] transition-shadow cursor-pointer text-left group"
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2.5">
-          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${coin.color} flex items-center justify-center text-white font-bold text-lg shadow-md`}>
-            {coin.icon ? <coin.icon size={20} /> : coin.symbol[0]}
+    <TiltCard intensity={6} className="w-full">
+      <motion.button
+        onClick={handleCopy}
+        whileTap={{ scale: 0.97 }}
+        className="w-full bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-sakura-200 shadow-[0_4px_24px_rgba(255,77,141,0.06)] hover:shadow-[0_8px_30px_rgba(255,77,141,0.18)] hover:border-sakura-400 transition-all cursor-pointer text-left group"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-10 h-10 rounded-xl bg-gradient-to-br ${coin.color} flex items-center justify-center text-white font-bold text-lg shadow-md`}
+            >
+              {coin.icon ? <coin.icon size={20} /> : coin.symbol[0]}
+            </div>
+            <div>
+              <p className="font-semibold text-ink text-sm">{coin.name}</p>
+              <p className="text-xs text-ink-muted">{coin.symbol}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-ink text-sm">{coin.name}</p>
-            <p className="text-xs text-ink-muted">{coin.symbol}</p>
+          <div
+            className={`p-2 rounded-full transition-all ${
+              copied
+                ? "bg-green-100 text-green-600"
+                : "bg-sakura-100 text-sakura-500 opacity-0 group-hover:opacity-100"
+            }`}
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
           </div>
         </div>
-        <div className={`p-2 rounded-full transition-all ${copied ? "bg-green-100 text-green-600" : "bg-sakura-100 text-sakura-500 opacity-0 group-hover:opacity-100"}`}>
-          {copied ? <Check size={16} /> : <Copy size={16} />}
-        </div>
-      </div>
-      <p className="font-mono text-xs text-ink-muted break-all bg-sakura-50 rounded-lg px-3 py-2 border border-sakura-100 group-hover:border-sakura-300 transition-colors">
-        {shortAddress}
-      </p>
-      {copied && (
-        <p className="text-xs text-green-600 mt-2 font-medium text-center">
-          Copied to clipboard ✓
+        <p className="font-mono text-xs text-ink-muted break-all bg-sakura-50 rounded-lg px-3 py-2 border border-sakura-100 group-hover:border-sakura-300 transition-colors">
+          {shortAddress}
         </p>
-      )}
-    </motion.button>
+        {copied && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-xs text-green-600 mt-2 font-medium text-center"
+          >
+            Copied to clipboard ✓
+          </motion.p>
+        )}
+      </motion.button>
+    </TiltCard>
   );
 }
 
@@ -99,11 +109,29 @@ export function CryptoAddresses() {
       >
         Click any card to copy the address
       </motion.p>
-      <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <motion.div
+        className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-40px" }}
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.12 } },
+        }}
+      >
         {coins.map((coin) => (
-          <CoinCard key={coin.symbol} coin={coin} />
+          <motion.div
+            key={coin.symbol}
+            variants={{
+              hidden: { opacity: 0, y: 25 },
+              visible: { opacity: 1, y: 0 },
+            }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <CoinCard coin={coin} />
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </section>
   );
 }

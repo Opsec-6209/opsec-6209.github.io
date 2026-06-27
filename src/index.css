@@ -28,6 +28,10 @@ body {
   overflow-x: hidden;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 #root {
   position: relative;
   z-index: 1;

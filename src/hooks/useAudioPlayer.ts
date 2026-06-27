@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { playlist } from "../data/playlist";
 
 export function useAudioPlayer() {
@@ -11,7 +11,7 @@ export function useAudioPlayer() {
     }
   });
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(() => {
+  const [volume, setVolumeState] = useState(() => {
     try {
       const saved = localStorage.getItem("sakura-volume");
       return saved ? Number(saved) : 0.7;
@@ -22,29 +22,32 @@ export function useAudioPlayer() {
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Audio instance created ONCE (preserves through re-renders, no double-create in StrictMode)
+  const [audio] = useState(() => {
+    const a = new Audio();
+    a.preload = "auto";
+    return a;
+  });
 
   const track = playlist[currentIndex];
-
-  const getAudio = useCallback(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.volume = volume;
-    }
-    return audioRef.current;
-  }, [volume]);
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
 
   const play = useCallback(() => {
-    const audio = getAudio();
     audio.src = track.file;
-    audio.play().then(() => setIsPlaying(true)).catch(() => {});
-  }, [track.file, getAudio]);
+    audio.volume = isMuted ? 0 : volume;
+    audio
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch(() => {});
+  }, [track.file, audio, volume, isMuted]);
 
   const pause = useCallback(() => {
-    getAudio().pause();
+    audio.pause();
     setIsPlaying(false);
-  }, [getAudio]);
+  }, [audio]);
 
   const togglePlay = useCallback(() => {
     if (isPlaying) pause();
@@ -52,35 +55,38 @@ export function useAudioPlayer() {
   }, [isPlaying, play, pause]);
 
   const next = useCallback(() => {
+    setIsTransitioning(true);
     setCurrentIndex((prev) => (prev + 1) % playlist.length);
+    setTimeout(() => setIsTransitioning(false), 250);
   }, []);
 
   const prev = useCallback(() => {
+    setIsTransitioning(true);
     setCurrentIndex((prev) => (prev - 1 + playlist.length) % playlist.length);
+    setTimeout(() => setIsTransitioning(false), 250);
   }, []);
 
   const seek = useCallback(
     (time: number) => {
-      const audio = getAudio();
       audio.currentTime = time;
       setCurrentTime(time);
     },
-    [getAudio]
+    [audio]
   );
 
-  const setVolumeLevel = useCallback(
+  const setVolume = useCallback(
     (v: number) => {
-      const audio = getAudio();
       audio.volume = v;
-      setVolume(v);
+      setVolumeState(v);
       setIsMuted(v === 0);
-      try { localStorage.setItem("sakura-volume", String(v)); } catch {}
+      try {
+        localStorage.setItem("sakura-volume", String(v));
+      } catch {}
     },
-    [getAudio]
+    [audio]
   );
 
   const toggleMute = useCallback(() => {
-    const audio = getAudio();
     if (isMuted) {
       audio.volume = volume;
       setIsMuted(false);
@@ -88,35 +94,53 @@ export function useAudioPlayer() {
       audio.volume = 0;
       setIsMuted(true);
     }
-  }, [isMuted, volume, getAudio]);
+  }, [isMuted, volume, audio]);
 
+  // Initial volume apply
   useEffect(() => {
-    const audio = getAudio();
+    audio.volume = isMuted ? 0 : volume;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track change effect — only re-runs on track change, NOT volume change (BUG-FIX)
+  useEffect(() => {
     audio.src = track.file;
 
     const onTimeUpdate = () => setCurrentTime(audio.currentTime);
     const onLoadedMetadata = () => setDuration(audio.duration);
     const onEnded = () => {
-      setIsPlaying(false);
+      // Auto-advance to next track (no need to set isPlaying false, the new track will play)
       setCurrentIndex((prev) => (prev + 1) % playlist.length);
     };
+    const onPause = () => {
+      // Only update state if not at end of track
+      if (!audio.ended) setIsPlaying(false);
+    };
+    const onPlay = () => setIsPlaying(true);
 
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("loadedmetadata", onLoadedMetadata);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
 
-    if (isPlaying) {
+    // If was playing, continue playing the new track
+    if (isPlayingRef.current) {
       audio.play().catch(() => {});
     }
 
-    try { localStorage.setItem("sakura-track-index", String(currentIndex)); } catch {}
+    try {
+      localStorage.setItem("sakura-track-index", String(currentIndex));
+    } catch {}
 
     return () => {
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("loadedmetadata", onLoadedMetadata);
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
     };
-  }, [currentIndex, getAudio, isPlaying, track.file]);
+  }, [currentIndex, track.file, audio]);
 
   return {
     track,
@@ -127,11 +151,14 @@ export function useAudioPlayer() {
     duration,
     currentIndex,
     totalTracks: playlist.length,
+    isTransitioning,
+    play,
+    pause,
     togglePlay,
     next,
     prev,
     seek,
-    setVolume: setVolumeLevel,
+    setVolume,
     toggleMute,
   };
 }

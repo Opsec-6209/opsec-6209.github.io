@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ExternalLink, Star, GitFork } from "lucide-react";
 import { useGitHubRepos } from "../hooks/useGitHubRepos";
+import { TiltCard } from "./TiltCard";
 
 const LANGUAGE_COLORS: Record<string, string> = {
   TypeScript: "bg-[#3178c6]",
@@ -56,55 +57,71 @@ export function ProjectsShowcase() {
       )}
 
       {!loading && !error && (
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {repos.slice(0, 12).map((repo, i) => (
-            <motion.a
+        <motion.div
+          className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-20px" }}
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.06 } },
+          }}
+        >
+          {repos.slice(0, 12).map((repo) => (
+            <motion.div
               key={repo.id}
-              href={repo.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-20px" }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              whileHover={{ y: -4 }}
-              className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-sakura-200 shadow-[0_4px_24px_rgba(255,77,141,0.06)] hover:shadow-[0_8px_30px_rgba(255,77,141,0.12)] transition-all flex flex-col"
+              variants={{
+                hidden: { opacity: 0, y: 25 },
+                visible: { opacity: 1, y: 0 },
+              }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-ink text-sm truncate flex-1 mr-2">
-                  {repo.name}
-                </h3>
-                <ExternalLink
-                  size={14}
-                  className="text-sakura-300 flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                />
-              </div>
-
-              {repo.description && (
-                <p className="text-xs text-ink-muted leading-relaxed mb-3 line-clamp-2 flex-1">
-                  {repo.description}
-                </p>
-              )}
-
-              <div className="flex items-center gap-3 text-xs text-ink-muted mt-auto">
-                {repo.language && (
-                  <span className="flex items-center gap-1">
-                    <span
-                      className={`w-2 h-2 rounded-full ${LANGUAGE_COLORS[repo.language] || "bg-sakura-400"}`}
+              <TiltCard intensity={4} className="h-full">
+                <a
+                  href={repo.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-full bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-sakura-200 shadow-[0_4px_24px_rgba(255,77,141,0.06)] hover:shadow-[0_8px_30px_rgba(255,77,141,0.18)] hover:border-sakura-400 transition-all flex flex-col"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-ink text-sm truncate flex-1 mr-2">
+                      {repo.name}
+                    </h3>
+                    <ExternalLink
+                      size={14}
+                      className="text-sakura-300 flex-shrink-0 mt-0.5"
                     />
-                    {repo.language}
-                  </span>
-                )}
-                <span className="flex items-center gap-1">
-                  <Star size={12} /> {repo.stargazers_count}
-                </span>
-                <span className="flex items-center gap-1">
-                  <GitFork size={12} /> {repo.forks_count}
-                </span>
-              </div>
-            </motion.a>
+                  </div>
+
+                  {repo.description && (
+                    <p className="text-xs text-ink-muted leading-relaxed mb-3 line-clamp-2 flex-1">
+                      {repo.description}
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-3 text-xs text-ink-muted mt-auto">
+                    {repo.language && (
+                      <span className="flex items-center gap-1">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            LANGUAGE_COLORS[repo.language] || "bg-sakura-400"
+                          }`}
+                        />
+                        {repo.language}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Star size={12} /> {repo.stargazers_count}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <GitFork size={12} /> {repo.forks_count}
+                    </span>
+                  </div>
+                </a>
+              </TiltCard>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </section>
   );

@@ -39,22 +39,32 @@ export function SkillsGrid() {
       >
         Technologies I work with
       </motion.p>
-      <div className="max-w-3xl mx-auto flex flex-wrap justify-center gap-2.5">
-        {skills.map((skill, i) => (
+      <motion.div
+        className="max-w-3xl mx-auto flex flex-wrap justify-center gap-2.5"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-40px" }}
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.04 } },
+        }}
+      >
+        {skills.map((skill) => (
           <motion.span
             key={skill.name}
-            initial={{ opacity: 0, scale: 0.8 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.3, delay: i * 0.04 }}
-            whileHover={{ scale: 1.08, y: -2 }}
+            variants={{
+              hidden: { opacity: 0, scale: 0.7, y: 10 },
+              visible: { opacity: 1, scale: 1, y: 0 },
+            }}
+            transition={{ duration: 0.3 }}
+            whileHover={{ scale: 1.1, y: -3 }}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/70 backdrop-blur-sm border border-sakura-200 text-sm font-medium text-ink shadow-sm hover:shadow-md hover:border-sakura-400 transition-all cursor-default select-none"
           >
             <span className={`text-base ${skill.color}`}>●</span>
             {skill.name}
           </motion.span>
         ))}
-      </div>
+      </motion.div>
     </section>
   );
 }
