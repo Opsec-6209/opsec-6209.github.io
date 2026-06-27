@@ -52,43 +52,33 @@ export function Hero({ isPlaying = false }: HeroProps) {
           className="absolute -inset-4 rounded-full bg-gradient-to-r from-sakura-200 via-sakura-300 to-sakura-200 blur-2xl"
         />
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          className="relative w-40 h-40 md:w-56 md:h-56"
-        >
-          <svg
-            className="absolute -inset-2 w-[calc(100%+16px)] h-[calc(100%+16px)]"
-            viewBox="0 0 200 200"
-          >
-            <defs>
-              <linearGradient id="pfp-border" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ff7aa8" />
-                <stop offset="50%" stopColor="#ff4d8d" />
-                <stop offset="100%" stopColor="#ff7aa8" />
-              </linearGradient>
-            </defs>
-            <motion.circle
-              cx="100"
-              cy="100"
-              r="96"
-              fill="none"
-              stroke="url(#pfp-border)"
-              strokeWidth="3"
-              strokeDasharray="6 4"
+        <div className="relative w-40 h-40 md:w-56 md:h-56">
+          <div className="absolute inset-0 rounded-full overflow-hidden">
+            <motion.div
+              className="absolute -inset-1/2 w-[200%] h-[200%]"
+              style={{
+                background:
+                  "conic-gradient(from 0deg, #ff4d8d 0%, #ff7aa8 15%, #ffa3bf 30%, #ffc8d8 45%, #ffa3bf 60%, #ff7aa8 75%, #ff4d8d 90%, #c41e5a 100%)",
+                transformOrigin: "center",
+              }}
               animate={{ rotate: 360 }}
-              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-              style={{ originX: "100px", originY: "100px" }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
             />
-          </svg>
-          <img
+          </div>
+
+          <div className="absolute inset-[3px] rounded-full bg-white" />
+
+          <motion.img
             src="/pfp.png"
             alt="opsec_6209"
-            className="relative w-full h-full rounded-full object-cover border-4 border-white shadow-[0_8px_40px_rgba(255,77,141,0.25),0_4px_16px_rgba(255,77,141,0.15)] select-none transition-shadow duration-500 group-hover:shadow-[0_12px_50px_rgba(255,77,141,0.45)]"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
+            whileHover={{ scale: 1.05, rotate: 2 }}
+            className="absolute inset-[3px] w-[calc(100%-6px)] h-[calc(100%-6px)] rounded-full object-cover shadow-[0_8px_40px_rgba(255,77,141,0.25),0_4px_16px_rgba(255,77,141,0.15)] select-none transition-shadow duration-500 group-hover:shadow-[0_12px_50px_rgba(255,77,141,0.45)]"
             draggable={false}
           />
+
           {clickPop && (
             <motion.div
               initial={{ opacity: 0, y: 0, scale: 0.5 }}
@@ -99,7 +89,7 @@ export function Hero({ isPlaying = false }: HeroProps) {
               ✨ thanks!
             </motion.div>
           )}
-        </motion.div>
+        </div>
       </motion.div>
 
       <h1 className="text-5xl md:text-7xl font-bold font-[var(--font-serif)] text-ink mt-8 mb-2 tracking-tighter flex items-baseline gap-3 justify-center flex-wrap">

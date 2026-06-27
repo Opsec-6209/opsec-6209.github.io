@@ -45,7 +45,7 @@ export function Footer() {
               </span>
             </div>
             <p className="text-sm text-ink-muted leading-relaxed font-[var(--font-serif)]">
-              developer · music · sakura
+              developer · music · tren
             </p>
           </div>
 
