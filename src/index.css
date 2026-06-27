@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sakura-50: #fff5f7;
+  --color-sakura-100: #ffe4ec;
+  --color-sakura-200: #ffc8d8;
+  --color-sakura-300: #ffa3bf;
+  --color-sakura-400: #ff7aa8;
+  --color-sakura-500: #ff4d8d;
+  --color-sakura-600: #e63574;
+  --color-sakura-700: #c41e5a;
+  --color-sakura-800: #8e1142;
+  --color-ink: #2a1a20;
+  --color-ink-muted: #6b4a55;
+  --color-cream: #fefcfb;
+  --font-serif: "Noto Serif JP", serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  background: linear-gradient(to bottom, #ffffff, #fff5f7, #ffffff);
+  color: var(--color-ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-sakura-50);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-sakura-300);
+  border-radius: 3px;
+}
+
+::selection {
+  background: var(--color-sakura-200);
+  color: var(--color-ink);
+}
+
+.canvas-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
