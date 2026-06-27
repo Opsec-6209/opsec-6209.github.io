@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { playlist } from "../data/playlist";
 
+export type RepeatMode = "off" | "all" | "one";
+
 export function useAudioPlayer() {
   const [currentIndex, setCurrentIndex] = useState(() => {
     try {
@@ -23,8 +25,23 @@ export function useAudioPlayer() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [shuffle, setShuffle] = useState(() => {
+    try {
+      return localStorage.getItem("sakura-shuffle") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [repeat, setRepeat] = useState<RepeatMode>(() => {
+    try {
+      const v = localStorage.getItem("sakura-repeat");
+      if (v === "all" || v === "one" || v === "off") return v;
+      return "all";
+    } catch {
+      return "all";
+    }
+  });
 
-  // Audio instance created ONCE (preserves through re-renders, no double-create in StrictMode)
   const [audio] = useState(() => {
     const a = new Audio();
     a.preload = "auto";
@@ -34,6 +51,10 @@ export function useAudioPlayer() {
   const track = playlist[currentIndex];
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
+  const repeatRef = useRef(repeat);
+  repeatRef.current = repeat;
+  const shuffleRef = useRef(shuffle);
+  shuffleRef.current = shuffle;
 
   const play = useCallback(() => {
     audio.src = track.file;
@@ -54,15 +75,38 @@ export function useAudioPlayer() {
     else play();
   }, [isPlaying, play, pause]);
 
+  const pickNextIndex = useCallback(
+    (current: number) => {
+      if (shuffleRef.current && playlist.length > 1) {
+        let next = current;
+        while (next === current) {
+          next = Math.floor(Math.random() * playlist.length);
+        }
+        return next;
+      }
+      return (current + 1) % playlist.length;
+    },
+    []
+  );
+
   const next = useCallback(() => {
     setIsTransitioning(true);
-    setCurrentIndex((prev) => (prev + 1) % playlist.length);
+    setCurrentIndex((prev) => pickNextIndex(prev));
     setTimeout(() => setIsTransitioning(false), 250);
-  }, []);
+  }, [pickNextIndex]);
 
   const prev = useCallback(() => {
     setIsTransitioning(true);
-    setCurrentIndex((prev) => (prev - 1 + playlist.length) % playlist.length);
+    setCurrentIndex((prev) => {
+      if (shuffleRef.current && playlist.length > 1) {
+        let next = prev;
+        while (next === prev) {
+          next = Math.floor(Math.random() * playlist.length);
+        }
+        return next;
+      }
+      return (prev - 1 + playlist.length) % playlist.length;
+    });
     setTimeout(() => setIsTransitioning(false), 250);
   }, []);
 
@@ -96,24 +140,57 @@ export function useAudioPlayer() {
     }
   }, [isMuted, volume, audio]);
 
-  // Initial volume apply
+  const toggleShuffle = useCallback(() => {
+    setShuffle((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("sakura-shuffle", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const cycleRepeat = useCallback(() => {
+    setRepeat((prev) => {
+      const order: RepeatMode[] = ["off", "all", "one"];
+      const next = order[(order.indexOf(prev) + 1) % order.length];
+      try {
+        localStorage.setItem("sakura-repeat", next);
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const jumpTo = useCallback((index: number) => {
+    if (index < 0 || index >= playlist.length) return;
+    setIsTransitioning(true);
+    setCurrentIndex(index);
+    setTimeout(() => setIsTransitioning(false), 250);
+  }, []);
+
   useEffect(() => {
     audio.volume = isMuted ? 0 : volume;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Track change effect — only re-runs on track change, NOT volume change (BUG-FIX)
   useEffect(() => {
     audio.src = track.file;
 
     const onTimeUpdate = () => setCurrentTime(audio.currentTime);
     const onLoadedMetadata = () => setDuration(audio.duration);
     const onEnded = () => {
-      // Auto-advance to next track (no need to set isPlaying false, the new track will play)
-      setCurrentIndex((prev) => (prev + 1) % playlist.length);
+      if (repeatRef.current === "one") {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+        return;
+      }
+      if (repeatRef.current === "off" && currentIndex === playlist.length - 1) {
+        setIsPlaying(false);
+        return;
+      }
+      setCurrentIndex((prev) => pickNextIndex(prev));
     };
     const onPause = () => {
-      // Only update state if not at end of track
       if (!audio.ended) setIsPlaying(false);
     };
     const onPlay = () => setIsPlaying(true);
@@ -124,7 +201,6 @@ export function useAudioPlayer() {
     audio.addEventListener("pause", onPause);
     audio.addEventListener("play", onPlay);
 
-    // If was playing, continue playing the new track
     if (isPlayingRef.current) {
       audio.play().catch(() => {});
     }
@@ -140,9 +216,10 @@ export function useAudioPlayer() {
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("play", onPlay);
     };
-  }, [currentIndex, track.file, audio]);
+  }, [currentIndex, track.file, audio, pickNextIndex]);
 
   return {
+    audio,
     track,
     isPlaying,
     volume,
@@ -152,6 +229,8 @@ export function useAudioPlayer() {
     currentIndex,
     totalTracks: playlist.length,
     isTransitioning,
+    shuffle,
+    repeat,
     play,
     pause,
     togglePlay,
@@ -160,5 +239,8 @@ export function useAudioPlayer() {
     seek,
     setVolume,
     toggleMute,
+    toggleShuffle,
+    cycleRepeat,
+    jumpTo,
   };
 }

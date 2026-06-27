@@ -1,7 +1,24 @@
-import { useRef, useState } from "react";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { useRef, useState, useCallback, useMemo } from "react";
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  Shuffle,
+  Repeat,
+  Repeat1,
+  Keyboard,
+  ListMusic,
+  X,
+  Music2,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAudioPlayer } from "../hooks/useAudioPlayer";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { AudioVisualizer } from "./AudioVisualizer";
+import { playlist } from "../data/playlist";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds) || seconds < 0) return "0:00";
@@ -16,6 +33,7 @@ interface MusicPlayerProps {
 
 export function MusicPlayer({ player }: MusicPlayerProps) {
   const {
+    audio,
     track,
     isPlaying,
     volume,
@@ -25,19 +43,48 @@ export function MusicPlayer({ player }: MusicPlayerProps) {
     currentIndex,
     totalTracks,
     isTransitioning,
+    shuffle,
+    repeat,
     togglePlay,
     next,
     prev,
     seek,
     setVolume,
     toggleMute,
+    toggleShuffle,
+    cycleRepeat,
+    jumpTo,
   } = player;
 
   const progressRef = useRef<HTMLDivElement>(null);
   const [hoverPct, setHoverPct] = useState<number | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const volumePct = Math.round((isMuted ? 0 : volume) * 100);
+
+  const shortcuts = useMemo(
+    () => ({
+      " ": () => togglePlay(),
+      spacebar: () => togglePlay(),
+      arrowleft: () => prev(),
+      arrowright: () => next(),
+      arrowup: () => setVolume(Math.min(1, (isMuted ? 0 : volume) + 0.05)),
+      arrowdown: () => setVolume(Math.max(0, (isMuted ? 0 : volume) - 0.05)),
+      m: () => toggleMute(),
+      s: () => toggleShuffle(),
+      r: () => cycleRepeat(),
+      "?": () => setShowHelp((s) => !s),
+      q: () => setShowQueue((s) => !s),
+      escape: () => {
+        setShowHelp(false);
+        setShowQueue(false);
+      },
+    }),
+    [togglePlay, next, prev, setVolume, isMuted, volume, toggleMute, toggleShuffle, cycleRepeat]
+  );
+  useKeyboardShortcuts(shortcuts);
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressRef.current || duration <= 0) return;
@@ -54,160 +101,398 @@ export function MusicPlayer({ player }: MusicPlayerProps) {
     setHoverPct(Math.max(0, Math.min(1, x / rect.width)));
   };
 
+  const queueItems = useMemo(() => {
+    const out: { track: typeof playlist[number]; index: number; playing: boolean }[] = [];
+    for (let i = 1; i <= 5; i++) {
+      const idx = (currentIndex + i) % playlist.length;
+      out.push({ track: playlist[idx], index: idx, playing: false });
+    }
+    out.unshift({ track: playlist[currentIndex], index: currentIndex, playing: true });
+    return out;
+  }, [currentIndex]);
+
+  const handleVolumeClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const pct = Math.max(0, Math.min(1, x / rect.width));
+      setVolume(pct);
+    },
+    [setVolume]
+  );
+
+  const RepeatIcon = repeat === "one" ? Repeat1 : Repeat;
+
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-white/85 backdrop-blur-xl border-b border-sakura-200 shadow-[0_2px_20px_rgba(255,77,141,0.06)]">
-      <div className="max-w-6xl mx-auto px-4 py-2 flex flex-col gap-1">
-        <div className="flex items-center gap-3">
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={track.id}
-              src={track.thumbnail}
-              alt={track.title}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: isTransitioning ? 0.4 : 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.2 }}
-              className="w-10 h-10 rounded-lg object-cover border border-sakura-200 flex-shrink-0 hidden sm:block"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><rect fill='%23ffe4ec' width='40' height='40'/><text x='20' y='25' text-anchor='middle' fill='%23ff4d8d' font-size='14'>🎵</text></svg>";
-              }}
-            />
-          </AnimatePresence>
-
-          <div className="flex-1 min-w-0">
+    <>
+      <div className="fixed top-0 left-0 right-0 z-50 glass-strong border-b border-sakura-200/60">
+        <div className="max-w-6xl mx-auto px-4 py-2 flex flex-col gap-1.5">
+          <div className="flex items-center gap-3">
             <AnimatePresence mode="wait">
-              <motion.p
+              <motion.div
                 key={track.id}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: isTransitioning ? 0.4 : 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
-                className="text-[13px] font-medium text-ink truncate leading-tight"
+                className="relative w-11 h-11 rounded-xl overflow-hidden border border-sakura-200 flex-shrink-0 hidden sm:block"
               >
-                {track.title}
-              </motion.p>
-            </AnimatePresence>
-            <p className="text-[11px] text-ink-muted truncate leading-tight">
-              {track.artist} · {currentIndex + 1}/{totalTracks}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={prev}
-              className="p-2 rounded-full hover:bg-sakura-100 text-ink-muted hover:text-ink transition-colors"
-              aria-label="Previous"
-            >
-              <SkipBack size={18} />
-            </button>
-
-            <motion.button
-              onClick={togglePlay}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              className="p-2.5 rounded-full bg-sakura-500 text-white hover:bg-sakura-600 transition-colors shadow-lg shadow-sakura-500/30"
-              aria-label={isPlaying ? "Pause" : "Play"}
-            >
-              <AnimatePresence mode="wait">
-                {isPlaying ? (
-                  <motion.span
-                    key="pause"
-                    initial={{ rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 90, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    <Pause size={18} />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="play"
-                    initial={{ rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 90, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    <Play size={18} className="ml-0.5" />
-                  </motion.span>
+                <img
+                  src={track.thumbnail}
+                  alt={track.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'><rect fill='%23ffe4ec' width='44' height='44'/><text x='22' y='28' text-anchor='middle' fill='%23ff4d8d' font-size='16'>🎵</text></svg>";
+                  }}
+                />
+                {isPlaying && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-sakura-500/20 to-transparent" />
                 )}
-              </AnimatePresence>
-            </motion.button>
+              </motion.div>
+            </AnimatePresence>
 
-            <button
-              onClick={next}
-              className="p-2 rounded-full hover:bg-sakura-100 text-ink-muted hover:text-ink transition-colors"
-              aria-label="Next"
-            >
-              <SkipForward size={18} />
-            </button>
-          </div>
+            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div className="flex items-center gap-1.5">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={track.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-[13px] font-semibold text-ink truncate leading-tight"
+                  >
+                    {track.title}
+                  </motion.p>
+                </AnimatePresence>
+                {isPlaying && (
+                  <span className="inline-flex items-center gap-0.5 flex-shrink-0">
+                    {[0, 1, 2].map((i) => (
+                      <motion.span
+                        key={i}
+                        className="w-0.5 bg-sakura-500 rounded-full"
+                        animate={{ height: ["3px", "8px", "3px"] }}
+                        transition={{
+                          duration: 0.8,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: i * 0.15,
+                        }}
+                      />
+                    ))}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-ink-muted truncate leading-tight font-mono">
+                {track.artist} · {currentIndex + 1}/{totalTracks}
+              </p>
+            </div>
 
-          <div className="hidden sm:flex items-center gap-2 min-w-[140px]">
-            <button
-              onClick={toggleMute}
-              className="p-1.5 rounded-full hover:bg-sakura-100 text-ink-muted hover:text-ink transition-colors"
-              aria-label={isMuted ? "Unmute" : "Mute"}
-            >
-              {isMuted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            </button>
-            <div className="relative flex-1 flex items-center group/vol">
+            <AudioVisualizer audioElement={audio} isPlaying={isPlaying} />
+
+            <div className="flex items-center gap-0.5">
+              <motion.button
+                onClick={toggleShuffle}
+                whileTap={{ scale: 0.9 }}
+                className={`p-1.5 rounded-full transition-colors ${
+                  shuffle
+                    ? "text-sakura-600 bg-sakura-100"
+                    : "text-ink-muted hover:text-ink hover:bg-sakura-100/60"
+                }`}
+                aria-label="Shuffle"
+                title="Shuffle (S)"
+              >
+                <Shuffle size={15} />
+              </motion.button>
+
+              <motion.button
+                onClick={prev}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 rounded-full text-ink-muted hover:text-ink hover:bg-sakura-100 transition-colors"
+                aria-label="Previous"
+                title="Previous (←)"
+              >
+                <SkipBack size={18} />
+              </motion.button>
+
+              <motion.button
+                onClick={togglePlay}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                className="p-2.5 rounded-full bg-sakura-500 text-white hover:bg-sakura-600 transition-colors shadow-lg shadow-sakura-500/40"
+                aria-label={isPlaying ? "Pause" : "Play"}
+                title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+              >
+                <AnimatePresence mode="wait">
+                  {isPlaying ? (
+                    <motion.span
+                      key="pause"
+                      initial={{ rotate: -90, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: 90, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <Pause size={18} />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="play"
+                      initial={{ rotate: -90, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: 90, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <Play size={18} className="ml-0.5" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+
+              <motion.button
+                onClick={next}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 rounded-full text-ink-muted hover:text-ink hover:bg-sakura-100 transition-colors"
+                aria-label="Next"
+                title="Next (→)"
+              >
+                <SkipForward size={18} />
+              </motion.button>
+
+              <motion.button
+                onClick={cycleRepeat}
+                whileTap={{ scale: 0.9 }}
+                className={`p-1.5 rounded-full transition-colors ${
+                  repeat !== "off"
+                    ? "text-sakura-600 bg-sakura-100"
+                    : "text-ink-muted hover:text-ink hover:bg-sakura-100/60"
+                }`}
+                aria-label="Repeat"
+                title={`Repeat: ${repeat} (R)`}
+              >
+                <RepeatIcon size={15} />
+              </motion.button>
+            </div>
+
+            <div className="hidden md:flex items-center gap-1.5 min-w-[150px]">
+              <button
+                onClick={toggleMute}
+                className="p-1.5 rounded-full hover:bg-sakura-100 text-ink-muted hover:text-ink transition-colors"
+                aria-label={isMuted ? "Unmute" : "Mute"}
+                title="Mute (M)"
+              >
+                {isMuted || volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
+              </button>
               <div
-                className="w-full h-[3px] bg-sakura-100 rounded-full overflow-hidden cursor-pointer relative"
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = e.clientX - rect.left;
-                  const pct = Math.max(0, Math.min(1, x / rect.width));
-                  setVolume(pct);
-                }}
+                className="relative flex-1 h-1.5 bg-sakura-100 rounded-full cursor-pointer group/vol"
+                onClick={handleVolumeClick}
               >
                 <div
-                  className="h-full bg-gradient-to-r from-sakura-300 to-sakura-500 rounded-full"
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-sakura-300 to-sakura-500 rounded-full"
                   style={{ width: `${volumePct}%` }}
                 />
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-sakura-500 rounded-full shadow-md shadow-sakura-500/30 pointer-events-none transition-transform group-hover/vol:scale-125"
+                  style={{ left: `calc(${volumePct}% - 6px)` }}
+                />
               </div>
+              <span className="text-[10px] text-ink-muted tabular-nums w-7 text-right font-mono">
+                {volumePct}%
+              </span>
+            </div>
+
+            <div className="flex items-center gap-0.5">
+              <motion.button
+                onClick={() => setShowQueue((s) => !s)}
+                whileTap={{ scale: 0.9 }}
+                className={`p-1.5 rounded-full transition-colors ${
+                  showQueue
+                    ? "text-sakura-600 bg-sakura-100"
+                    : "text-ink-muted hover:text-ink hover:bg-sakura-100/60"
+                }`}
+                aria-label="Queue"
+                title="Queue (Q)"
+              >
+                <ListMusic size={15} />
+              </motion.button>
+              <motion.button
+                onClick={() => setShowHelp((s) => !s)}
+                whileTap={{ scale: 0.9 }}
+                className={`p-1.5 rounded-full transition-colors ${
+                  showHelp
+                    ? "text-sakura-600 bg-sakura-100"
+                    : "text-ink-muted hover:text-ink hover:bg-sakura-100/60"
+                } hidden sm:inline-flex`}
+                aria-label="Keyboard shortcuts"
+                title="Shortcuts (?)"
+              >
+                <Keyboard size={15} />
+              </motion.button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-[10px] text-ink-muted">
+            <span className="w-8 tabular-nums font-mono">{formatTime(currentTime)}</span>
+            <div
+              ref={progressRef}
+              onClick={handleProgressClick}
+              onMouseMove={handleProgressHover}
+              onMouseLeave={() => setHoverPct(null)}
+              className="flex-1 h-1 bg-sakura-100 rounded-full cursor-pointer relative group/prog"
+            >
               <div
-                className="absolute w-3.5 h-3.5 bg-sakura-500 rounded-full shadow-md shadow-sakura-500/40 cursor-grab active:cursor-grabbing pointer-events-none transition-transform group-hover/vol:scale-110"
+                className="h-full bg-gradient-to-r from-sakura-400 to-sakura-500 rounded-full transition-all duration-100"
+                style={{ width: `${progress}%` }}
+              />
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-sakura-500 rounded-full shadow-md shadow-sakura-500/50 ring-2 ring-white transition-opacity"
                 style={{
-                  left: `calc(${volumePct}% - 7px)`,
+                  left: `calc(${progress}% - 7px)`,
+                  opacity: hoverPct !== null || isPlaying ? 1 : 0,
                 }}
               />
+              {hoverPct !== null && duration > 0 && (
+                <div
+                  className="absolute -top-7 px-2 py-0.5 rounded-md bg-ink text-white text-[10px] font-mono pointer-events-none transform -translate-x-1/2 whitespace-nowrap"
+                  style={{ left: `${hoverPct * 100}%` }}
+                >
+                  {formatTime(hoverPct * duration)}
+                </div>
+              )}
             </div>
-            <span className="text-[10px] text-ink-muted tabular-nums w-7 text-right">
-              {volumePct}%
-            </span>
+            <span className="w-8 tabular-nums text-right font-mono">{formatTime(duration)}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[10px] text-ink-muted">
-          <span className="w-8 tabular-nums">{formatTime(currentTime)}</span>
-          <div
-            ref={progressRef}
-            onClick={handleProgressClick}
-            onMouseMove={handleProgressHover}
-            onMouseLeave={() => setHoverPct(null)}
-            className="flex-1 h-1.5 bg-sakura-100 rounded-full cursor-pointer relative group/prog"
-          >
-            <div
-              className="h-full bg-gradient-to-r from-sakura-400 to-sakura-500 rounded-full transition-all duration-100"
-              style={{ width: `${progress}%` }}
-            />
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-sakura-500 rounded-full shadow-md shadow-sakura-500/40 transition-opacity"
-              style={{ left: `calc(${progress}% - 6px)`, opacity: hoverPct !== null ? 1 : 0 }}
-            />
-            {hoverPct !== null && duration > 0 && (
-              <div
-                className="absolute -top-7 px-2 py-0.5 rounded-md bg-ink text-white text-[10px] font-mono pointer-events-none transform -translate-x-1/2"
-                style={{ left: `${hoverPct * 100}%` }}
-              >
-                {formatTime(hoverPct * duration)}
+        <AnimatePresence>
+          {showQueue && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="border-t border-sakura-200 overflow-hidden"
+            >
+              <div className="max-w-6xl mx-auto px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-mono uppercase tracking-[0.2em] text-ink-muted flex items-center gap-1.5">
+                    <Music2 size={12} /> Up Next
+                  </h4>
+                  <button
+                    onClick={() => setShowQueue(false)}
+                    className="text-ink-muted hover:text-ink"
+                    aria-label="Close queue"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {queueItems.map((q) => (
+                    <li key={`${q.index}-${q.track.id}`}>
+                      <button
+                        onClick={() => jumpTo(q.index)}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                          q.playing
+                            ? "bg-sakura-100 text-sakura-700"
+                            : "hover:bg-sakura-50 text-ink"
+                        }`}
+                      >
+                        <img
+                          src={q.track.thumbnail}
+                          alt=""
+                          className="w-7 h-7 rounded object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-medium truncate">{q.track.title}</p>
+                          <p className="text-[10px] text-ink-muted truncate font-mono">
+                            {q.track.artist}
+                          </p>
+                        </div>
+                        {q.playing && (
+                          <span className="text-[10px] text-sakura-600 font-mono flex-shrink-0">
+                            NOW
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )}
-          </div>
-          <span className="w-8 tabular-nums text-right">{formatTime(duration)}</span>
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+
+      <AnimatePresence>
+        {showHelp && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setShowHelp(false)}
+            className="fixed inset-0 z-[100] bg-black/30 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 8 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 8 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-strong rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold font-[var(--font-serif)] text-ink flex items-center gap-2">
+                  <Keyboard size={18} className="text-sakura-500" /> Shortcuts
+                </h3>
+                <button
+                  onClick={() => setShowHelp(false)}
+                  className="text-ink-muted hover:text-ink p-1"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <ul className="space-y-2 text-sm">
+                {[
+                  { keys: ["Space"], label: "Play / Pause" },
+                  { keys: ["←", "→"], label: "Previous / Next" },
+                  { keys: ["↑", "↓"], label: "Volume up / down" },
+                  { keys: ["M"], label: "Mute toggle" },
+                  { keys: ["S"], label: "Shuffle toggle" },
+                  { keys: ["R"], label: "Repeat cycle" },
+                  { keys: ["Q"], label: "Toggle queue" },
+                  { keys: ["?"], label: "Toggle this help" },
+                  { keys: ["Esc"], label: "Close" },
+                ].map((s) => (
+                  <li
+                    key={s.label}
+                    className="flex items-center justify-between py-1 border-b border-sakura-100 last:border-0"
+                  >
+                    <span className="text-ink-muted">{s.label}</span>
+                    <span className="flex gap-1">
+                      {s.keys.map((k) => (
+                        <kbd
+                          key={k}
+                          className="px-2 py-0.5 rounded-md bg-sakura-100 text-sakura-700 text-[11px] font-mono border border-sakura-200"
+                        >
+                          {k}
+                        </kbd>
+                      ))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[10px] text-ink-faint mt-4 text-center">
+                Shortcuts work globally except in text fields
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

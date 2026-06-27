@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { SectionHeader } from "./SectionHeader";
 
 interface SocialLink {
   href: string;
@@ -33,7 +34,7 @@ const links: SocialLink[] = [
     label: "TikTok",
     username: "@opsec_6209",
     color: "text-[#ff0050]",
-    glow: "shadow-[0_0_30px_rgba(255,0,80,0.25)]",
+    glow: "0 0 30px rgba(255,0,80,0.30)",
     icon: TikTokIcon,
   },
   {
@@ -41,7 +42,7 @@ const links: SocialLink[] = [
     label: "Discord",
     username: "opsec_6209",
     color: "text-[#5865F2]",
-    glow: "shadow-[0_0_30px_rgba(88,101,242,0.25)]",
+    glow: "0 0 30px rgba(88,101,242,0.30)",
     icon: DiscordIcon,
   },
   {
@@ -49,14 +50,20 @@ const links: SocialLink[] = [
     label: "GitHub",
     username: "Opsec-6209",
     color: "text-ink",
-    glow: "shadow-[0_0_30px_rgba(42,26,32,0.15)]",
+    glow: "0 0 30px rgba(42,26,32,0.20)",
     icon: GitHubIcon,
   },
 ];
 
 export function SocialLinks() {
   return (
-    <section id="social" className="py-12 px-4">
+    <section id="social" className="py-16 px-4">
+      <SectionHeader
+        title="Find Me"
+        subtitle="Follow along across platforms"
+        kanji="繋がり"
+        className="mb-10"
+      />
       <motion.div
         className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4"
         initial="hidden"
@@ -78,25 +85,39 @@ export function SocialLinks() {
               visible: { opacity: 1, y: 0 },
             }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            whileHover={{ y: -6 }}
+            whileHover={{ y: -4, scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
-            className={`group relative bg-white/60 backdrop-blur-md rounded-2xl p-6 border border-sakura-200 hover:border-sakura-400 transition-all duration-300 hover:${link.glow}`}
+            className="group relative glass rounded-2xl p-6 border border-sakura-200/60 overflow-hidden transition-all duration-300 hover:border-sakura-400"
+            style={{
+              ["--card-glow" as string]: link.glow,
+            }}
           >
-            <div className="flex flex-col items-center text-center gap-3">
-              <div className={`${link.color} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
+            <span
+              className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              style={{
+                background:
+                  "radial-gradient(120% 80% at 50% 0%, rgba(255,200,216,0.45), transparent 60%)",
+              }}
+            />
+            <span
+              className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              style={{ boxShadow: "var(--card-glow), inset 0 0 0 1px rgba(255,122,168,0.4)" }}
+            />
+            <div className="relative flex flex-col items-center text-center gap-3">
+              <div
+                className={`${link.color} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}
+              >
                 <link.icon />
               </div>
               <div>
                 <p className="font-semibold text-ink text-base">{link.label}</p>
-                <p className="text-xs text-ink-muted font-mono mt-0.5">{link.username}</p>
+                <p className="text-xs text-ink-muted font-mono mt-0.5">
+                  {link.username}
+                </p>
               </div>
-              <motion.span
-                initial={{ opacity: 0, x: -4 }}
-                whileHover={{ opacity: 1, x: 0 }}
-                className="text-[10px] text-sakura-400 font-medium tracking-wider opacity-60 group-hover:opacity-100 transition-opacity"
-              >
-                CLICK TO OPEN ↗
-              </motion.span>
+              <span className="absolute bottom-0 right-0 text-sakura-400 text-base leading-none opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all">
+                ↗
+              </span>
             </div>
           </motion.a>
         ))}

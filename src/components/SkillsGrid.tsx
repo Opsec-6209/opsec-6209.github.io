@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { SectionHeader } from "./SectionHeader";
 
 const skills = [
   { name: "React", color: "text-[#61dafb]" },
@@ -21,24 +22,12 @@ const skills = [
 export function SkillsGrid() {
   return (
     <section id="skills" className="py-16 px-4">
-      <motion.h2
-        initial={{ opacity: 0, y: 15 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-        className="text-2xl md:text-3xl font-bold font-[var(--font-serif)] text-ink text-center mb-2"
-      >
-        Tech Stack
-      </motion.h2>
-      <motion.p
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="text-ink-muted text-center mb-8 text-sm"
-      >
-        Technologies I work with
-      </motion.p>
+      <SectionHeader
+        title="Tech Stack"
+        subtitle="Languages and tools I work with"
+        kanji="技術"
+        className="mb-10"
+      />
       <motion.div
         className="max-w-3xl mx-auto flex flex-wrap justify-center gap-2.5"
         initial="hidden"
@@ -53,14 +42,14 @@ export function SkillsGrid() {
           <motion.span
             key={skill.name}
             variants={{
-              hidden: { opacity: 0, scale: 0.7, y: 10 },
+              hidden: { opacity: 0, scale: 0.7, y: 12 },
               visible: { opacity: 1, scale: 1, y: 0 },
             }}
-            transition={{ duration: 0.3 }}
-            whileHover={{ scale: 1.1, y: -3 }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/70 backdrop-blur-sm border border-sakura-200 text-sm font-medium text-ink shadow-sm hover:shadow-md hover:border-sakura-400 transition-all cursor-default select-none"
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            whileHover={{ scale: 1.08, y: -2 }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full glass border border-sakura-200/60 text-sm font-medium text-ink shadow-[0_2px_8px_rgba(255,77,141,0.04)] hover:border-sakura-400 hover:shadow-[0_4px_16px_rgba(255,77,141,0.18)] transition-all cursor-default select-none"
           >
-            <span className={`text-base ${skill.color}`}>●</span>
+            <span className={`text-base leading-none ${skill.color}`}>●</span>
             {skill.name}
           </motion.span>
         ))}

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
 
 const GITHUB_USERNAME = "Opsec-6209";
 
@@ -21,24 +22,12 @@ const stats = [
 export function GitHubStats() {
   return (
     <section id="stats" className="py-16 px-4">
-      <motion.h2
-        initial={{ opacity: 0, y: 15 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-        className="text-2xl md:text-3xl font-bold font-[var(--font-serif)] text-ink text-center mb-2"
-      >
-        GitHub Stats
-      </motion.h2>
-      <motion.p
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="text-ink-muted text-center mb-8 text-sm"
-      >
-        Live activity from GitHub
-      </motion.p>
+      <SectionHeader
+        title="GitHub Activity"
+        subtitle="Live data from GitHub"
+        kanji="統計"
+        className="mb-10"
+      />
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
         {stats.map((stat, i) => (
           <motion.a
@@ -50,17 +39,23 @@ export function GitHubStats() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-30px" }}
             transition={{ duration: 0.4, delay: i * 0.1 }}
-            whileHover={{ y: -3 }}
-            className="bg-white/70 backdrop-blur-sm rounded-2xl border border-sakura-200 shadow-[0_4px_24px_rgba(255,77,141,0.06)] overflow-hidden hover:shadow-[0_8px_30px_rgba(255,77,141,0.12)] transition-all group"
+            whileHover={{ y: -4, scale: 1.02 }}
+            className="group relative glass rounded-2xl border border-sakura-200/60 shadow-[0_4px_24px_rgba(255,77,141,0.06)] overflow-hidden hover:shadow-[0_10px_36px_rgba(255,77,141,0.18)] hover:border-sakura-400 transition-all duration-300"
           >
+            <span
+              className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              style={{ boxShadow: "inset 0 0 0 1px rgba(255,122,168,0.4)" }}
+            />
             <img
               src={stat.src}
               alt={stat.title}
-              className="w-full"
+              className="relative w-full"
               loading="lazy"
             />
-            <div className="flex items-center justify-center gap-1 py-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <span className="text-xs text-sakura-500">View Profile</span>
+            <div className="relative flex items-center justify-center gap-1 py-2.5 opacity-70 group-hover:opacity-100 transition-opacity">
+              <span className="text-xs text-sakura-500 font-medium">
+                View Profile
+              </span>
               <ExternalLink size={12} className="text-sakura-400" />
             </div>
           </motion.a>

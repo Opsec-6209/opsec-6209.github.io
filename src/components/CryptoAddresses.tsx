@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Copy, Check, Bitcoin } from "lucide-react";
 import { useState } from "react";
 import { TiltCard } from "./TiltCard";
+import { SectionHeader } from "./SectionHeader";
 
 const coins = [
   {
@@ -43,16 +44,20 @@ function CoinCard({ coin }: { coin: (typeof coins)[0] }) {
       : coin.address;
 
   return (
-    <TiltCard intensity={6} className="w-full">
+    <TiltCard intensity={5} className="w-full">
       <motion.button
         onClick={handleCopy}
         whileTap={{ scale: 0.97 }}
-        className="w-full bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-sakura-200 shadow-[0_4px_24px_rgba(255,77,141,0.06)] hover:shadow-[0_8px_30px_rgba(255,77,141,0.18)] hover:border-sakura-400 transition-all cursor-pointer text-left group"
+        className="group relative w-full glass rounded-2xl p-5 border border-sakura-200/60 shadow-[0_4px_24px_rgba(255,77,141,0.06)] hover:shadow-[0_10px_36px_rgba(255,77,141,0.22)] hover:border-sakura-400 transition-all duration-300 cursor-pointer text-left overflow-hidden"
       >
-        <div className="flex items-center justify-between mb-3">
+        <span
+          className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{ boxShadow: "inset 0 0 0 1px rgba(255,122,168,0.4)" }}
+        />
+        <div className="relative flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div
-              className={`w-10 h-10 rounded-xl bg-gradient-to-br ${coin.color} flex items-center justify-center text-white font-bold text-lg shadow-md`}
+              className={`w-10 h-10 rounded-xl bg-gradient-to-br ${coin.color} flex items-center justify-center text-white font-bold text-lg shadow-md ring-1 ring-white/40`}
             >
               {coin.icon ? <coin.icon size={20} /> : coin.symbol[0]}
             </div>
@@ -62,7 +67,7 @@ function CoinCard({ coin }: { coin: (typeof coins)[0] }) {
             </div>
           </div>
           <div
-            className={`p-2 rounded-full transition-all ${
+            className={`p-2 rounded-full transition-all duration-200 ${
               copied
                 ? "bg-green-100 text-green-600"
                 : "bg-sakura-100 text-sakura-500 opacity-0 group-hover:opacity-100"
@@ -71,7 +76,7 @@ function CoinCard({ coin }: { coin: (typeof coins)[0] }) {
             {copied ? <Check size={16} /> : <Copy size={16} />}
           </div>
         </div>
-        <p className="font-mono text-xs text-ink-muted break-all bg-sakura-50 rounded-lg px-3 py-2 border border-sakura-100 group-hover:border-sakura-300 transition-colors">
+        <p className="font-mono text-xs text-ink-muted break-all bg-sakura-50/80 rounded-lg px-3 py-2 border border-sakura-100 group-hover:border-sakura-300 transition-colors">
           {shortAddress}
         </p>
         {copied && (
@@ -91,24 +96,12 @@ function CoinCard({ coin }: { coin: (typeof coins)[0] }) {
 export function CryptoAddresses() {
   return (
     <section id="crypto" className="py-16 px-4">
-      <motion.h2
-        initial={{ opacity: 0, y: 15 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-        className="text-2xl md:text-3xl font-bold font-[var(--font-serif)] text-ink text-center mb-2"
-      >
-        Support via Crypto
-      </motion.h2>
-      <motion.p
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="text-ink-muted text-center mb-8 text-sm"
-      >
-        Click any card to copy the address
-      </motion.p>
+      <SectionHeader
+        title="Support via Crypto"
+        subtitle="Click any card to copy the address"
+        kanji="応援"
+        className="mb-10"
+      />
       <motion.div
         className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4"
         initial="hidden"
