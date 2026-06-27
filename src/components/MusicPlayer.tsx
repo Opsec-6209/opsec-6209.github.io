@@ -380,7 +380,7 @@ export function MusicPlayer({ player }: MusicPlayerProps) {
                   />
                 </div>
                 <div
-                  className={`absolute w-3 h-3 bg-white border-2 border-sakura-500 rounded-full shadow-md shadow-sakura-500/30 pointer-events-none transition-transform ${
+                  className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-sakura-500 rounded-full shadow-md shadow-sakura-500/30 pointer-events-none transition-transform ${
                     isDraggingVolume ? "scale-150" : "group-hover/vol:scale-125"
                   }`}
                   style={{ left: `calc(${volumePct}% - 6px)` }}
@@ -430,7 +430,7 @@ export function MusicPlayer({ player }: MusicPlayerProps) {
               onPointerUp={handleProgressPointerUp}
               onPointerCancel={handleProgressPointerUp}
               onPointerLeave={handleProgressPointerLeave}
-              className="flex-1 h-3 flex items-center cursor-pointer group/prog touch-none"
+              className="relative flex-1 h-3 flex items-center cursor-pointer group/prog touch-none"
               title="Click or drag to seek"
             >
               <div className="w-full h-1 bg-sakura-100 rounded-full overflow-hidden">
@@ -440,11 +440,11 @@ export function MusicPlayer({ player }: MusicPlayerProps) {
                 />
               </div>
               <div
-                className={`absolute w-3.5 h-3.5 bg-sakura-500 rounded-full shadow-md shadow-sakura-500/50 ring-2 ring-white pointer-events-none transition-transform ${
+                className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-sakura-500 rounded-full shadow-md shadow-sakura-500/50 ring-2 ring-white pointer-events-none transition-transform ${
                   isDraggingProgress ? "scale-125" : "group-hover/prog:scale-110"
                 }`}
                 style={{
-                  left: `calc(${progress}% - 7px)`,
+                  left: `calc(${progress}% - 9px)`,
                   opacity: hoverPct !== null || isDraggingProgress || isPlaying ? 1 : 0,
                 }}
               />
